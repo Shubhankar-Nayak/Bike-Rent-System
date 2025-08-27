@@ -1,10 +1,13 @@
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit';
+import axios from 'axios';
+import { RootState } from '../store';
 
 interface User {
   id: string;
   name: string;
   email: string;
   phone: string;
+  hasPassword?: boolean;
   userType: 'student' | 'renter';
   profileCompleted: boolean;
   documents?: {
@@ -29,6 +32,38 @@ const initialState: AuthState = {
   loading: false,
 };
 
+const API = import.meta.env.VITE_API_URL;
+
+export const setPassword = createAsyncThunk<
+  void,
+  { newPassword: string },
+  { state: RootState }
+>('auth/setPassword', async ({ newPassword }, { getState, rejectWithValue }) => {
+  try {
+    const token = getState().auth.token;
+    await axios.post(`${API}/user/set-password`, { newPassword }, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  } catch (error: any) {
+    return rejectWithValue(error.response?.data?.message || 'Failed to set password');
+  }
+});
+
+export const changePassword = createAsyncThunk<
+  void,
+  { currentPassword: string; newPassword: string },
+  { state: RootState }
+>('auth/changePassword', async ({ currentPassword, newPassword }, { getState, rejectWithValue }) => {
+  try {
+    const token = getState().auth.token;
+    await axios.post(`${API}/user/change-password`, { currentPassword, newPassword }, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  } catch (error: any) {
+    return rejectWithValue(error.response?.data?.message || 'Failed to change password');
+  }
+});
+
 const authSlice = createSlice({
   name: 'auth',
   initialState,
@@ -37,8 +72,15 @@ const authSlice = createSlice({
       state.loading = true;
     },
     loginSuccess: (state, action: PayloadAction<{ user: User; token: string }>) => {
+      state.user = {
+        id: action.payload.user.id,
+        email: action.payload.user.email,
+        name: action.payload.user.name,
+        phone: action.payload.user.phone,
+        userType: action.payload.user.userType,
+        hasPassword: action.payload.user.hasPassword ?? false,
+      };
       state.loading = false;
-      state.user = action.payload.user;
       state.token = action.payload.token;
       state.isAuthenticated = true;
     },
@@ -53,6 +95,19 @@ const authSlice = createSlice({
       state.token = null;
       state.isAuthenticated = false;
     },
+    register: (state, action: PayloadAction<{ user: User; token: string }>) => {
+      state.user = {
+        id: action.payload.user.id,
+        email: action.payload.user.email,
+        name: action.payload.user.name,
+        phone: action.payload.user.phone,
+        userType: action.payload.user.userType,
+        hasPassword: action.payload.user.hasPassword ?? false, 
+      };
+      state.token = action.payload.token;
+      state.isAuthenticated = true;
+      state.loading = false;
+    },
     updateProfile: (state, action: PayloadAction<Partial<User>>) => {
       if (state.user) {
         state.user = { ...state.user, ...action.payload };
@@ -61,5 +116,5 @@ const authSlice = createSlice({
   },
 });
 
-export const { loginStart, loginSuccess, loginFailure, logout, updateProfile } = authSlice.actions;
+export const { loginStart, loginSuccess, loginFailure, logout, register, updateProfile } = authSlice.actions;
 export default authSlice.reducer;
