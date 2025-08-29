@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
-import { useAppSelector } from '../../hooks/redux';
+import { useAppDispatch, useAppSelector } from '../../hooks/redux';
+import { register as registerAction, registerUser } from '../../store/slices/authSlice';
 import { Eye, EyeOff, Mail, Lock, Phone, User, Bike, GraduationCap, Building2 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import axios from 'axios';
 
 interface RegisterForm {
   name: string;
@@ -15,10 +17,21 @@ interface RegisterForm {
 }
 
 const Register: React.FC = () => {
+  const API = import.meta.env.VITE_API_URL;
+  const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const { isDark } = useAppSelector(state => state.theme);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [emailForVerification, setEmailForVerification] = useState('');
+  const [otp, setOtp] = useState('');
+  const [userName, setUserName] = useState('');
+  const [userEmail, setUserEmail] = useState('');
+  const [userPassword, setUserPassword] = useState('');
+  const [hash, setHash] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [userT, setUser] = useState('');
+  const [otpStep, setOtpStep] = useState(false);
 
   const {
     register,
@@ -31,16 +44,50 @@ const Register: React.FC = () => {
   const userType = watch('userType');
 
   const onSubmit = async (data: RegisterForm) => {
-    // Mock registration - replace with actual API call
-    console.log('Registration data:', data);
-    
-    // Navigate to document upload page
-    navigate('/register/documents', { 
-      state: { 
-        userType: data.userType,
-        userData: data 
-      } 
-    });
+
+    try {
+      const response = await axios.post(`${API}/user/send-otp`, {
+        email: data.email,
+      });
+      setUserName(data.name);
+      setUserEmail(data.email);
+      setUserPassword(data.password);
+      setHash(response.data.hash);
+      setEmailForVerification(data.email);
+      setPhoneNumber(data.phone);
+      setUser(data.userType);
+
+      setOtpStep(true);
+    } catch (error: any) {
+      console.error('Registration error:', error.response?.data?.message || error.message);
+      alert(error.response?.data?.message || 'Registration failed');
+    }
+  };
+
+  const handleVerifyOtp = async () => {
+    try {
+      const { user, token } = await registerUser({
+        name: userName,
+        email: userEmail,
+        password: userPassword,
+        otp,
+        hash,
+        phone: phoneNumber,    
+        userType: userT,
+      });
+      dispatch(registerAction({ user, token }));
+
+      localStorage.setItem('userInfo', JSON.stringify({ user, token }));
+
+      navigate('/register/documents', { 
+        state: { 
+          userType: userT,
+          userData: { name: userName, email: userEmail, phone: phoneNumber }, 
+        } 
+      });
+    } catch (error: any) {
+      alert(error.response?.data?.message || 'OTP verification failed');
+    }
   };
 
   return (
@@ -288,6 +335,37 @@ const Register: React.FC = () => {
             Continue to Document Upload
           </motion.button>
         </form>
+
+        {/* OTP Step */}
+        {otpStep && (
+          <div className="mt-6">
+            <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-neutral-light' : 'text-neutral-dark'}`}>
+              Enter OTP
+            </label>
+            <div className="flex space-x-2">
+              <input
+                type="text"
+                value={otp}
+                onChange={(e) => setOtp(e.target.value)}
+                placeholder="Enter OTP"
+                className={`flex-1 px-4 py-3 rounded-lg border ${
+                  isDark
+                    ? 'bg-primary-dark border-neutral-dark text-neutral-light'
+                    : 'bg-white border-neutral-light text-neutral-dark'
+                } focus:ring-2 focus:ring-accent-primary focus:border-transparent transition-all duration-200`}
+              />
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={handleVerifyOtp}
+                className="px-6 py-3 bg-gradient-to-r from-accent-primary to-accent-secondary text-white font-medium rounded-lg hover:shadow-lg transition-all duration-200"
+              >
+                Verify
+              </motion.button>
+            </div>
+          </div>
+        )}
+
 
         {/* Footer */}
         <div className="mt-6 text-center">

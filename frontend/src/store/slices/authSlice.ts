@@ -32,7 +32,20 @@ const initialState: AuthState = {
   loading: false,
 };
 
-const API = import.meta.env.VITE_API_URL;
+const API = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
+export const registerUser = async (formData: {
+  name: string;
+  email: string;
+  password: string;
+  otp: string;
+  hash: string;
+  phone: string;
+  userType: 'student' | 'renter';
+}) => {
+  const response = await axios.post(`${API}/user/register`, formData);
+  return response.data;
+};
 
 export const setPassword = createAsyncThunk<
   void,
@@ -72,6 +85,14 @@ const authSlice = createSlice({
       state.loading = true;
     },
     loginSuccess: (state, action: PayloadAction<{ user: User; token: string }>) => {
+      const { user } = action.payload;
+
+      const profileCompleted = 
+        !!user.documents?.aadhar && 
+        !!user.documents?.license && 
+        !!user.documents?.collegeId && 
+        !!user.documents?.rollNumber;
+
       state.user = {
         id: action.payload.user.id,
         email: action.payload.user.email,
@@ -79,6 +100,7 @@ const authSlice = createSlice({
         phone: action.payload.user.phone,
         userType: action.payload.user.userType,
         hasPassword: action.payload.user.hasPassword ?? false,
+        profileCompleted,
       };
       state.loading = false;
       state.token = action.payload.token;
@@ -96,6 +118,14 @@ const authSlice = createSlice({
       state.isAuthenticated = false;
     },
     register: (state, action: PayloadAction<{ user: User; token: string }>) => {
+      const { user } = action.payload;
+
+      const profileCompleted = 
+        !!user.documents?.aadhar && 
+        !!user.documents?.license && 
+        !!user.documents?.collegeId && 
+        !!user.documents?.rollNumber;
+
       state.user = {
         id: action.payload.user.id,
         email: action.payload.user.email,
@@ -103,6 +133,7 @@ const authSlice = createSlice({
         phone: action.payload.user.phone,
         userType: action.payload.user.userType,
         hasPassword: action.payload.user.hasPassword ?? false, 
+        profileCompleted,
       };
       state.token = action.payload.token;
       state.isAuthenticated = true;
