@@ -34,18 +34,28 @@ const initialState: AuthState = {
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
-export const registerUser = async (formData: {
-  name: string;
-  email: string;
-  password: string;
-  otp: string;
-  hash: string;
-  phone: string;
-  userType: 'student' | 'renter';
-}) => {
-  const response = await axios.post(`${API}/user/register`, formData);
-  return response.data;
-};
+export const registerUserThunk = createAsyncThunk<
+  { user: User; token: string }, 
+  {
+    name: string;
+    email: string;
+    password: string;
+    otp: string;
+    hash: string;
+    phone: string;
+    userType: 'student' | 'renter';
+  }
+>(
+  'auth/registerUser',
+  async (formData, { rejectWithValue }) => {
+    try {
+      const response = await axios.post(`${API}/user/register`, formData);
+      return response.data;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || 'Registration failed');
+    }
+  }
+);
 
 export const setPassword = createAsyncThunk<
   void,

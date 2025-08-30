@@ -75,7 +75,8 @@ const Register: React.FC = () => {
         phone: phoneNumber,    
         userType: userT,
       });
-      dispatch(registerAction({ user, token }));
+      
+      dispatch(registerUserThunk(formData));
 
       localStorage.setItem('userInfo', JSON.stringify({ user, token }));
 
