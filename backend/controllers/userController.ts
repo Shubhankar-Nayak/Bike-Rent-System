@@ -116,6 +116,7 @@ export const loginUser = async (req: AuthenticatedRequest, res: Response) => {
         name: user.name,
         email: user.email,
         hasPassword: !!user.password,
+        userType: user.userType,
       },
     });
   } catch (err) {

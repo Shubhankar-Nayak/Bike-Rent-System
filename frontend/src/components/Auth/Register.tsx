@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { useAppDispatch, useAppSelector } from '../../hooks/redux';
-import { register as registerAction, registerUser } from '../../store/slices/authSlice';
+import { register as registerAction, registerUserThunk } from '../../store/slices/authSlice';
 import { Eye, EyeOff, Mail, Lock, Phone, User, Bike, GraduationCap, Building2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import axios from 'axios';
@@ -30,7 +30,7 @@ const Register: React.FC = () => {
   const [userPassword, setUserPassword] = useState('');
   const [hash, setHash] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
-  const [userT, setUser] = useState('');
+  const [userT, setUser] = useState<'student' | 'renter' | ''>('');
   const [otpStep, setOtpStep] = useState(false);
 
   const {
@@ -66,17 +66,19 @@ const Register: React.FC = () => {
 
   const handleVerifyOtp = async () => {
     try {
-      const { user, token } = await registerUser({
-        name: userName,
-        email: userEmail,
-        password: userPassword,
-        otp,
-        hash,
-        phone: phoneNumber,    
-        userType: userT,
-      });
-      
-      dispatch(registerUserThunk(formData));
+      const result = await dispatch(
+        registerUserThunk({
+          name: userName,
+          email: userEmail,
+          password: userPassword,
+          otp,
+          hash,
+          phone: phoneNumber,
+          userType: userT as "student" | "renter",
+        })
+      ).unwrap();
+
+      const { user, token } = result;
 
       localStorage.setItem('userInfo', JSON.stringify({ user, token }));
 

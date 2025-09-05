@@ -5,6 +5,7 @@ import { useAppDispatch, useAppSelector } from '../../hooks/redux';
 import { loginStart, loginSuccess, loginFailure } from '../../store/slices/authSlice';
 import { Eye, EyeOff, Mail, Lock, Bike } from 'lucide-react';
 import { motion } from 'framer-motion';
+import axios from 'axios';
 
 interface LoginForm {
   email: string;
@@ -12,6 +13,7 @@ interface LoginForm {
 }
 
 const Login: React.FC = () => {
+  const API = import.meta.env.VITE_API_URL;
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const { loading } = useAppSelector(state => state.auth);
@@ -25,27 +27,16 @@ const Login: React.FC = () => {
   } = useForm<LoginForm>();
 
   const onSubmit = async (data: LoginForm) => {
-    dispatch(loginStart());
     try {
-      // Mock login - replace with actual API call
-      setTimeout(() => {
-        const mockUser = {
-          id: '1',
-          name: 'John Doe',
-          email: data.email,
-          phone: '+1234567890',
-          userType: data.email.includes('student') ? 'student' : 'renter' as 'student' | 'renter',
-          profileCompleted: true,
-        };
-        
-        dispatch(loginSuccess({
-          user: mockUser,
-          token: 'mock-token-123'
-        }));
-        
-        navigate(mockUser.userType === 'student' ? '/student/dashboard' : '/renter/dashboard');
-      }, 1000);
-    } catch (error) {
+      dispatch(loginStart());
+
+      const response = await axios.post(`${API}/user/login`, data);
+
+      const { user, token } = response.data;
+
+      dispatch(loginSuccess({ user, token }));
+    } catch (error: any) {
+      console.error('Login failed:', error);
       dispatch(loginFailure());
     }
   };

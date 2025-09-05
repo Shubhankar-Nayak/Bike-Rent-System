@@ -95,7 +95,7 @@ const authSlice = createSlice({
       state.loading = true;
     },
     loginSuccess: (state, action: PayloadAction<{ user: User; token: string }>) => {
-      const { user } = action.payload;
+      const { user, token } = action.payload;
 
       const profileCompleted = 
         !!user.documents?.aadhar && 
@@ -115,6 +115,8 @@ const authSlice = createSlice({
       state.loading = false;
       state.token = action.payload.token;
       state.isAuthenticated = true;
+
+      localStorage.setItem("auth", JSON.stringify({ user: state.user, token }));
     },
     loginFailure: (state) => {
       state.loading = false;
@@ -128,7 +130,7 @@ const authSlice = createSlice({
       state.isAuthenticated = false;
     },
     register: (state, action: PayloadAction<{ user: User; token: string }>) => {
-      const { user } = action.payload;
+      const { user, token } = action.payload;
 
       const profileCompleted = 
         !!user.documents?.aadhar && 
@@ -148,6 +150,8 @@ const authSlice = createSlice({
       state.token = action.payload.token;
       state.isAuthenticated = true;
       state.loading = false;
+
+      localStorage.setItem("auth", JSON.stringify({ user: state.user, token }));
     },
     updateProfile: (state, action: PayloadAction<Partial<User>>) => {
       if (state.user) {
@@ -155,6 +159,21 @@ const authSlice = createSlice({
       }
     },
   },
+  extraReducers: (builder) => {
+    builder.addCase(registerUserThunk.fulfilled, (state, action) => {
+      const { user, token } = action.payload;
+      const profileCompleted =
+        !!user.documents?.aadhar &&
+        !!user.documents?.license &&
+        !!user.documents?.collegeId &&
+        !!user.documents?.rollNumber;
+
+      state.user = { ...user, profileCompleted };
+      state.token = token;
+      state.isAuthenticated = true;
+      state.loading = false;
+    }); 
+  }
 });
 
 export const { loginStart, loginSuccess, loginFailure, logout, register, updateProfile } = authSlice.actions;

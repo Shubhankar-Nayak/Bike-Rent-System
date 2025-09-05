@@ -4,6 +4,7 @@ import connectDB from './config/db';
 import cors from 'cors';
 
 import userRoutes from './routes/userRoutes';
+import fileRoutes from "./routes/fileRoutes";
 
 import path from 'path';
 
@@ -28,6 +29,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.use('/api/user', userRoutes);
+app.use("/api/files", fileRoutes);
 
 const PORT = process.env.PORT || 5000;
 
